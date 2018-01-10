@@ -131,7 +131,10 @@ namespace _12306ByXX
             TextBox tb = sender as TextBox;
             string text = tb.Text.Trim();
             List<Station> ls =
-                _lsStations.Where(x => x.Name.Contains(text) || x.Pinyin.Contains(text) || x.Shorthand.Contains(text))
+                _lsStations.Where(
+                    x =>
+                        x.Name.Contains(text) || x.Pinyin.ToUpper().Contains(text.ToUpper()) ||
+                        x.Shorthand.ToUpper().Contains(text.ToUpper()))
                     .ToList();
             BindingSource bs = new BindingSource();
             bs.DataSource = ls;
@@ -299,6 +302,7 @@ namespace _12306ByXX
                         QueryTicket ticket = new QueryTicket();
                         string[] item = s.Split('|');
                         ticket.SecretStr = item[0];
+                        ticket.Remark = item[1];
                         ticket.Train_No = item[2];
                         ticket.Station_Train_Code = item[3];
                         ticket.From_Station_Name = trainDictionary[item[6]];
@@ -322,6 +326,7 @@ namespace _12306ByXX
                     dgv_tickets.AutoGenerateColumns = false;
                     dgv_tickets.DataSource = tickets;
                     dgv_tickets.DoubleBuffered(true);
+                    dgv_tickets.Rows[0].Selected = false;
                     lb_queryInfo.Text = "余票查询成功！";
                 }
                 else
@@ -677,7 +682,7 @@ namespace _12306ByXX
         /// <returns></returns>
         private bool QueryOrderWaitTime(InitInfo info, out string msg)
         {
-            msg = "";
+            msg = "购票失败";
             try
             {
                 string timeSpan = GetTimeStamp();
@@ -726,41 +731,33 @@ namespace _12306ByXX
             }
         }
 
+        private List<string> _lsSecretStr = new List<string>();
+        private bool isAutoBuy = false;
         private void btn_autoBuy_Click(object sender, EventArgs e)
         {
             try
             {
-                var rows = dgv_tickets.SelectedRows;
-                bool buyResult = true;
-                while (buyResult)
+                if (_lsSecretStr.Count == 0)
                 {
-                    foreach (DataGridViewRow row in rows)
-                    {
-                        string secretStr = row.Cells["SecretStr"].Value.ToString();
-                        QueryTicket selectedTrain = tickets.FirstOrDefault(x => x.SecretStr.Equals(secretStr));
-                        bool noTicket = CheckIsNoTicket(selectedTrain);
-                        bool noSeat = false;
-                        IEnumerable<string> arrySeats = leftSeat.Keys.ToList().Intersect(GetSeatType());
-                        string buySeat = arrySeats.FirstOrDefault();
-                        if (!arrySeats.Any())
-                        {
-                            noSeat = true;
-                        }
-                        if (noTicket || noSeat)
-                        {
-                            QueryTickets(queryUrl);
-                            Thread.Sleep(3000);
-                            continue;
-                        }
-                        List<Passenger> selectedPassengers = GetPassaPassengers();
-                        string msg = "";
-                        if (BuyTicket(secretStr, selectedPassengers, buySeat, selectedTrain, out msg))
-                        {
-                            buyResult = false;
-                        }
-
-                    }
+                    MessageBox.Show("请先选择车次！");
+                    return;
                 }
+                buyTimer = new System.Windows.Forms.Timer();
+                buyTimer.Interval = 3000;
+                if (isAutoBuy)
+                {
+                    isAutoBuy = false;
+                    buyTimer.Stop();
+                    btn_autoBuy.Text = "抢票";
+                    return;
+                }
+                else
+                {
+                    isAutoBuy = true;
+                    btn_autoBuy.Text = "暂停";
+                    buyTimer.Enabled = true;
+                }
+                buyTimer.Tick += buyTimer_Tick;
             }
             catch (Exception ex)
             {
@@ -768,6 +765,41 @@ namespace _12306ByXX
             }
 
         }
+
+        int j = 0;
+        private System.Windows.Forms.Timer buyTimer;
+
+        private void buyTimer_Tick(object sender, EventArgs e)
+        {
+            foreach (string secretStr in _lsSecretStr)
+            {
+                j++;
+                QueryTicket selectedTrain = tickets.FirstOrDefault(x => x.SecretStr.Equals(secretStr));
+                if (selectedTrain == null) continue;
+                LogHelper.Info("第" + j + "次购票：" + selectedTrain.Station_Train_Code);
+                bool noTicket = CheckIsNoTicket(selectedTrain);
+                bool noSeat = false;
+                IEnumerable<string> arrySeats = leftSeat.Keys.ToList().Intersect(GetSeatType());
+                string buySeat = arrySeats.FirstOrDefault();
+                if (!arrySeats.Any())
+                {
+                    noSeat = true;
+                }
+                if (noTicket || noSeat)
+                {
+                    LogHelper.Info(selectedTrain.Station_Train_Code + "无票");
+                    QueryTickets(queryUrl);
+                    continue;
+                }
+                List<Passenger> selectedPassengers = GetPassaPassengers();
+                string msg = "";
+                if (BuyTicket(secretStr, selectedPassengers, buySeat, selectedTrain, out msg))
+                {
+                    buyTimer.Stop();
+                }
+            }
+        }
+
 
         private bool BuyTicket(string secretStr, List<Passenger> selectedPassengers, string buySeat, QueryTicket selectedTrain,out string msg)
         {
@@ -798,11 +830,31 @@ namespace _12306ByXX
             }
             return false;
         }
-        private void ckb_autoBuy_CheckedChanged(object sender, EventArgs e)
+
+        private void ckb_multiBuy_CheckedChanged(object sender, EventArgs e)
         {
-            if (ckb_autoBuy.Checked)
+
+            if (ckb_multiBuy.Checked)
             {
                 dgv_tickets.MultiSelect = true;
+            }
+        }
+
+        private void dgv_tickets_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            var rows = dgv_tickets.SelectedRows;
+            foreach (DataGridViewRow row in rows)
+            {
+                string str = row.Cells["SecretStr"].Value.ToString();
+                string trainNo = row.Cells["TrianCode"].Value.ToString();
+                if (!string.IsNullOrEmpty(str))
+                {
+                    _lsSecretStr.Add(str);
+                }
+                else
+                {
+                    MessageBox.Show(trainNo + " SecretStr为空，请重新查询或选择其他车次！");
+                }
             }
         }
     }

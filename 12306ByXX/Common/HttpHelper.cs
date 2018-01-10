@@ -109,8 +109,5 @@ namespace _12306ByXX.Common
             }
             return responseContent;
         }
-
-
-    
     }
 }

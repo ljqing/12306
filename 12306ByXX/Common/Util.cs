@@ -93,6 +93,8 @@ namespace _12306ByXX.Common
 
         public int Day_Difference { get; set; }
 
+        public string Remark { get; set; }
+
         /// <summary>
         /// 历时
         /// </summary>
