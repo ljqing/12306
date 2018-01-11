@@ -276,7 +276,7 @@ namespace _12306ByXX
             i = i + 1;
             QueryTickets(queryUrl);
             string msg = "第" + i + "次查询";
-            lb_queryInfo.Text = msg;
+            FormatLogInfo(msg);
             LogHelper.Info(msg);
         }
 
@@ -327,7 +327,7 @@ namespace _12306ByXX
                     dgv_tickets.DataSource = tickets;
                     dgv_tickets.DoubleBuffered(true);
                     dgv_tickets.Rows[0].Selected = false;
-                    lb_queryInfo.Text = "余票查询成功！";
+                    FormatLogInfo("余票查询成功！");
                 }
                 else
                 {
@@ -397,6 +397,7 @@ namespace _12306ByXX
                 string msg = "";
                 if (BuyTicket(secretStr, selectedPassengers, buySeat, selectedTrain, out msg))
                 {
+                    buyTimer.Stop();
                     LogHelper.Info("订票成功！");
                 }
                 else
@@ -447,6 +448,8 @@ namespace _12306ByXX
             const string loginOutUrl = "https://kyfw.12306.cn/otn/login/loginOut";
             HttpHelper.Get(_agent, loginOutUrl, _cookie);
             isLoginOut = true;
+            timer.Stop();
+            buyTimer.Stop();
             this.Close();
         }
         /// <summary>
@@ -722,7 +725,7 @@ namespace _12306ByXX
             if (!ckb_autoQuery.Checked)
             {
                 i = 0;
-                lb_queryInfo.Text = "";
+                tb_logInfo.AppendText("");
                 timer.Stop();
             }
             else if(ckb_autoQuery.Checked)
@@ -731,33 +734,37 @@ namespace _12306ByXX
             }
         }
 
-        private List<string> _lsSecretStr = new List<string>();
+        private List<string> _lsTrainCode = new List<string>();
         private bool isAutoBuy = false;
+        private System.Windows.Forms.Timer buyTimer;
+        private int j = 0;
         private void btn_autoBuy_Click(object sender, EventArgs e)
         {
             try
             {
-                if (_lsSecretStr.Count == 0)
+                if (_lsTrainCode.Count == 0)
                 {
                     MessageBox.Show("请先选择车次！");
                     return;
                 }
-                buyTimer = new System.Windows.Forms.Timer();
-                buyTimer.Interval = 3000;
                 if (isAutoBuy)
                 {
                     isAutoBuy = false;
                     buyTimer.Stop();
                     btn_autoBuy.Text = "抢票";
-                    return;
+                    FormatLogInfo("暂停抢票");
                 }
                 else
                 {
+                    buyTimer = new System.Windows.Forms.Timer();
+                    buyTimer.Interval = 3000;
+                    buyTimer.Tick += buyTimer_Tick;
                     isAutoBuy = true;
                     btn_autoBuy.Text = "暂停";
-                    buyTimer.Enabled = true;
+                    buyTimer.Start();
+                    j = 0;
+                    FormatLogInfo("开始抢票");
                 }
-                buyTimer.Tick += buyTimer_Tick;
             }
             catch (Exception ex)
             {
@@ -766,17 +773,22 @@ namespace _12306ByXX
 
         }
 
-        int j = 0;
-        private System.Windows.Forms.Timer buyTimer;
-
         private void buyTimer_Tick(object sender, EventArgs e)
         {
-            foreach (string secretStr in _lsSecretStr)
+            foreach (string trian in _lsTrainCode)
             {
                 j++;
-                QueryTicket selectedTrain = tickets.FirstOrDefault(x => x.SecretStr.Equals(secretStr));
-                if (selectedTrain == null) continue;
-                LogHelper.Info("第" + j + "次购票：" + selectedTrain.Station_Train_Code);
+                QueryTicket selectedTrain = tickets.FirstOrDefault(x => x.Station_Train_Code.Equals(trian));
+                if (selectedTrain == null || string.IsNullOrEmpty(selectedTrain.SecretStr))
+                {
+                    QueryTickets(queryUrl);
+                    Thread.Sleep(1000);
+                    continue;
+                }
+                string secretStr = selectedTrain.SecretStr;
+                string logMsg = "第" + j + "次购票：" + selectedTrain.Station_Train_Code;
+                LogHelper.Info(logMsg);
+                FormatLogInfo(logMsg);
                 bool noTicket = CheckIsNoTicket(selectedTrain);
                 bool noSeat = false;
                 IEnumerable<string> arrySeats = leftSeat.Keys.ToList().Intersect(GetSeatType());
@@ -787,8 +799,11 @@ namespace _12306ByXX
                 }
                 if (noTicket || noSeat)
                 {
-                    LogHelper.Info(selectedTrain.Station_Train_Code + "无票");
+                    logMsg = selectedTrain.Station_Train_Code + "无票";
+                    LogHelper.Info(logMsg);
+                    FormatLogInfo(logMsg);
                     QueryTickets(queryUrl);
+                    Thread.Sleep(1000);
                     continue;
                 }
                 List<Passenger> selectedPassengers = GetPassaPassengers();
@@ -805,23 +820,24 @@ namespace _12306ByXX
         {
             if (SubmitOrderRequest(secretStr, out msg))
             {
-                lb_queryInfo.Text = "预提交订单成功！";
+                FormatLogInfo("预提交订单成功！");
                 InitInfo info = GetInitInfo();
-                lb_queryInfo.Text = "获取页面信息成功！";
+                FormatLogInfo("获取页面信息成功！");
                 if (info != null)
                 {
                     string randCode, passengerTicketStr, oldPassengerStr;
                     if (CheckOrderInfo(selectedPassengers, buySeat, info, out randCode, out passengerTicketStr,
                         out oldPassengerStr))
                     {
-                        lb_queryInfo.Text = "核查订单成功！";
+                        FormatLogInfo("核查订单成功！");
                         if (GetQueueCount(selectedTrain, buySeat, info))
                         {
-                            lb_queryInfo.Text = "获取排队人数成功！";
+                            FormatLogInfo("获取排队人数成功！");
                             if (ConfirmSingleForQueue(passengerTicketStr, oldPassengerStr, randCode, info))
                             {
-                                lb_queryInfo.Text = "开始排队！";
+                                FormatLogInfo("开始排队！");
                                 MessageBox.Show(QueryOrderWaitTime(info, out msg) ? "订票成功，请及时查询及支付订单！" : msg);
+                                FormatLogInfo(msg);
                                 return true;
                             }
                         }
@@ -842,20 +858,20 @@ namespace _12306ByXX
 
         private void dgv_tickets_CellClick(object sender, DataGridViewCellEventArgs e)
         {
+            _lsTrainCode = new List<string>();
             var rows = dgv_tickets.SelectedRows;
             foreach (DataGridViewRow row in rows)
             {
-                string str = row.Cells["SecretStr"].Value.ToString();
                 string trainNo = row.Cells["TrianCode"].Value.ToString();
-                if (!string.IsNullOrEmpty(str))
-                {
-                    _lsSecretStr.Add(str);
-                }
-                else
-                {
-                    MessageBox.Show(trainNo + " SecretStr为空，请重新查询或选择其他车次！");
-                }
+                _lsTrainCode.Add(trainNo);
+
             }
+        }
+
+        private void FormatLogInfo(string arginfo)
+        {
+            string time = DateTime.Now.ToString("hh:mm:ss");
+            tb_logInfo.AppendText(string.Format("{0}  {1}\n", time, arginfo));
         }
     }
 }
