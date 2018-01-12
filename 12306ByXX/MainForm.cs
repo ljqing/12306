@@ -368,7 +368,7 @@ namespace _12306ByXX
             try
             {
                 if (dgv_tickets.CurrentRow == null) return;
-                if (dgv_tickets.SelectedRows.Count > 1)
+                if (dgv_tickets.SelectedRows.Count > 1 || isAutoBuy)
                 {
                     return;
                 }
@@ -397,7 +397,6 @@ namespace _12306ByXX
                 string msg;
                 if (BuyTicket(secretStr, selectedPassengers, buySeat, selectedTrain, out msg))
                 {
-                    buyTimer.Stop();
                     LogHelper.Info("订票成功！");
                 }
                 else
@@ -448,8 +447,14 @@ namespace _12306ByXX
             const string loginOutUrl = "https://kyfw.12306.cn/otn/login/loginOut";
             HttpHelper.Get(_agent, loginOutUrl, _cookie);
             isLoginOut = true;
-            timer.Stop();
-            buyTimer.Stop();
+            if (timer != null)
+            {
+                timer.Stop();
+            }
+            if (buyTimer != null)
+            {
+                buyTimer.Stop();
+            }
             this.Close();
         }
         /// <summary>
@@ -485,7 +490,7 @@ namespace _12306ByXX
         /// <returns></returns>
         private bool SubmitOrderRequest(string secretStr,out string msg)
         {
-            msg = "购票失败，请重试！";
+            msg = "提交失败，需重新登录！";
             try
             {
                 string url = "https://kyfw.12306.cn/otn/leftTicket/submitOrderRequest";
@@ -655,26 +660,39 @@ namespace _12306ByXX
         /// <param name="info"></param>
         /// <returns></returns>
         private bool ConfirmSingleForQueue(string passengerTicketStr, string oldPassengerStr, string randCode,
-            InitInfo info)
+            InitInfo info,out string msg)
         {
+            msg = "确认购票失败！";
             try
             {
                 string url = "https://kyfw.12306.cn/otn/confirmPassenger/confirmSingleForQueue";
                 string data =
                     string.Format(
                         "passengerTicketStr={0}&oldPassengerStr={1}&randCode={2}&purpose_codes={3}&key_check_isChange={4}C&leftTicketStr={5}&train_location={6}&choose_seats=&seatDetailType=000&whatsSelect=1&roomType=00&dwAll=N&_json_att=&REPEAT_SUBMIT_TOKEN={7}",
-                        passengerTicketStr, oldPassengerStr, randCode, info.PurposeCodes, info.KeyCheck, info.LeftTicketInfo,
+                        UrlEncode(passengerTicketStr), UrlEncode(oldPassengerStr), randCode, info.PurposeCodes,
+                        info.KeyCheck, info.LeftTicketInfo,
                         info.Location,
                         info.SubmitToken);
                 HttpJsonEntity<Dictionary<string, string>> contentEntity =
-                     HttpHelper.Post(_agent, url, data, _cookie);
-                return contentEntity.status.ToUpper().Equals("TRUE") && contentEntity.httpstatus.Equals(200);
+                    HttpHelper.Post(_agent, url, data, _cookie);
+                if (contentEntity.status.ToUpper().Equals("TRUE") && contentEntity.httpstatus.Equals(200))
+                {
+                    if (contentEntity.data.ContainsKey("submitStatus") &&
+                        contentEntity.data["submitStatus"].ToUpper().Equals("TRUE"))
+                    {
+                        return true;
+                    }
+                    if (contentEntity.data.ContainsKey("errMsg"))
+                    {
+                        msg = contentEntity.data["errMsg"];
+                    }
+                }
             }
             catch (Exception ex)
             {
                 LogHelper.Error("ConfirmSingleForQueue", ex);
-                return false;
             }
+            return false;
         }
 
         /// <summary>
@@ -825,20 +843,28 @@ namespace _12306ByXX
                 FormatLogInfo("获取页面信息成功！");
                 if (info != null)
                 {
+                    Thread.Sleep(500);
                     string randCode, passengerTicketStr, oldPassengerStr;
                     if (CheckOrderInfo(selectedPassengers, buySeat, info, out randCode, out passengerTicketStr,
                         out oldPassengerStr))
                     {
                         FormatLogInfo("核查订单成功！");
+                        Thread.Sleep(500);
                         if (GetQueueCount(selectedTrain, buySeat, info))
                         {
                             FormatLogInfo("获取排队人数成功！");
-                            if (ConfirmSingleForQueue(passengerTicketStr, oldPassengerStr, randCode, info))
+                            Thread.Sleep(500);
+                            if (ConfirmSingleForQueue(passengerTicketStr, oldPassengerStr, randCode, info, out msg))
                             {
+                                Thread.Sleep(500);
                                 FormatLogInfo("开始排队！");
-                                MessageBox.Show(QueryOrderWaitTime(info, out msg) ? "订票成功，请及时查询及支付订单！" : msg);
+                                if (QueryOrderWaitTime(info, out msg))
+                                {
+                                    EmailHelper.Send("674381638@qq.com", "", selectedTrain.Station_Train_Code);
+                                    MessageBox.Show("订票成功，请及时查询及支付订单！");
+                                    return true;
+                                }
                                 FormatLogInfo(msg);
-                                return true;
                             }
                         }
                     }
