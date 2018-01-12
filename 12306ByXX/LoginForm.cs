@@ -131,12 +131,14 @@ namespace _12306ByXX
             string url = "https://kyfw.12306.cn/passport/web/login";
             string postData = string.Format("username={0}&password={1}&appid={2}", userName,
                 passWord, "otn");
+            Thread.Sleep(1000);
             string content = HttpHelper.StringPost(DefaultAgent, url, postData, _cookie); ;
             Dictionary<string, string> retDic = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
             if (retDic.ContainsKey("result_code") && retDic["result_code"].Equals("0"))
             {
                 postData = "appid=otn";
                 url = "https://kyfw.12306.cn/passport/web/auth/uamtk";
+                Thread.Sleep(1000);
                 content = HttpHelper.StringPost(DefaultAgent, url, postData, _cookie); ;
                 retDic = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
                 if (retDic.ContainsKey("result_code") && retDic["result_code"].Equals("0"))
@@ -144,6 +146,7 @@ namespace _12306ByXX
                     string newapptk = retDic["newapptk"];
                     url = "https://kyfw.12306.cn/otn/uamauthclient";
                     postData = "tk=" + newapptk;
+                    Thread.Sleep(1000);
                     content = HttpHelper.StringPost(DefaultAgent, url, postData, _cookie); ;
                     retDic = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
                     if (retDic.ContainsKey("result_code") && retDic["result_code"].Equals("0"))
