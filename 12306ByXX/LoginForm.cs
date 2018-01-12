@@ -35,6 +35,7 @@ namespace _12306ByXX
         private readonly string basePath = AppDomain.CurrentDomain.BaseDirectory;
 
         public CaptchaCheck Check { get; set; }
+        public string LinkAddress { get; set; }
         private void LoginForm_Load(object sender, EventArgs e)
         {
             string fileName = basePath + "\\data.dat";
@@ -55,6 +56,11 @@ namespace _12306ByXX
             _cookie =new CookieContainer();
             HttpHelper.Get(DefaultAgent, "https://kyfw.12306.cn/otn/login/init", _cookie);
             captchaCheck.Cookie = _cookie;
+            if (rb_check2.Checked)
+            {
+                LinkAddress = "1";
+                captchaCheck.LinkAddress = LinkAddress;
+            }
         }
 
 
@@ -63,19 +69,19 @@ namespace _12306ByXX
         /// </summary>
         private void Login()
         {
-            
+
             SavePwd();
             string userName = tb_userName.Text;
             string passWord = tb_passWord.Text;
 
             string randCode = captchaCheck.RandCode;
+            bool loginRet = false;
+            string message;
+            loginRet = LinkAddress == "1"
+                ? Login(userName, passWord, out message)
+                : Login(userName, passWord, randCode, out message);
 
-            const string loginUrl = "https://kyfw.12306.cn/otn/login/loginAysnSuggest";
-            string postData = string.Format("loginUserDTO.user_name={0}&userDTO.password={1}&randCode={2}", userName,
-                passWord, randCode);
-            HttpJsonEntity<Dictionary<string,string>> retEntity =
-               HttpHelper.Post(DefaultAgent, loginUrl, postData, _cookie); ;
-            if (retEntity.status.ToUpper().Equals("TRUE") && retEntity.httpstatus.Equals(200))
+            if (loginRet)
             {
                 LogHelper.Info("登录成功！");
                 const string mainurl = "https://kyfw.12306.cn/otn/index/initMy12306";
@@ -97,9 +103,57 @@ namespace _12306ByXX
             }
             else
             {
-                MessageBox.Show(retEntity.messages[0]);
+                MessageBox.Show(message);
                 captchaCheck.LoadCaptchaImg();
             }
+        }
+
+        private bool Login(string userName, string passWord, string randCode,out string msg)
+        {
+            msg = "";
+            const string loginUrl = "https://kyfw.12306.cn/otn/login/loginAysnSuggest";
+            string postData = string.Format("loginUserDTO.user_name={0}&userDTO.password={1}&randCode={2}", userName,
+                passWord, randCode);
+            HttpJsonEntity<Dictionary<string, string>> retEntity =
+                HttpHelper.Post(DefaultAgent, loginUrl, postData, _cookie);
+            ;
+            if (retEntity.status.ToUpper().Equals("TRUE") && retEntity.httpstatus.Equals(200))
+            {
+                return true;
+            }
+            msg = retEntity.messages[0];
+            return false;
+        }
+
+        private bool Login(string userName, string passWord,out string msg)
+        {
+            msg = "";
+            string url = "https://kyfw.12306.cn/passport/web/login";
+            string postData = string.Format("username={0}&password={1}&appid={2}", userName,
+                passWord, "otn");
+            string content = HttpHelper.StringPost(DefaultAgent, url, postData, _cookie); ;
+            Dictionary<string, string> retDic = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
+            if (retDic.ContainsKey("result_code") && retDic["result_code"].Equals("0"))
+            {
+                postData = "appid=otn";
+                url = "https://kyfw.12306.cn/passport/web/auth/uamtk";
+                content = HttpHelper.StringPost(DefaultAgent, url, postData, _cookie); ;
+                retDic = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
+                if (retDic.ContainsKey("result_code") && retDic["result_code"].Equals("0"))
+                {
+                    string newapptk = retDic["newapptk"];
+                    url = "https://kyfw.12306.cn/otn/uamauthclient";
+                    postData = "tk=" + newapptk;
+                    content = HttpHelper.StringPost(DefaultAgent, url, postData, _cookie); ;
+                    retDic = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
+                    if (retDic.ContainsKey("result_code") && retDic["result_code"].Equals("0"))
+                    {
+                        return true;
+                    }
+                }
+            }
+            msg = retDic["result_message"];
+            return false;
         }
         /// <summary>
         /// 获取乘客信息
@@ -148,6 +202,13 @@ namespace _12306ByXX
             {
                 File.Delete(fileName);
             }
+        }
+
+        private void rb_LinkAdress_CheckedChanged(object sender, EventArgs e)
+        {
+            LinkAddress = rb_check1.Checked ? "0" : "1";
+            captchaCheck.LinkAddress = LinkAddress;
+            captchaCheck.LoadCaptchaImg();
         }
     }
 }
