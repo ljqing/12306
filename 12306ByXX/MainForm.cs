@@ -394,7 +394,7 @@ namespace _12306ByXX
                     MessageBox.Show("未选择乘客！");
                     return;
                 }
-                string msg = "";
+                string msg;
                 if (BuyTicket(secretStr, selectedPassengers, buySeat, selectedTrain, out msg))
                 {
                     buyTimer.Stop();
@@ -485,7 +485,7 @@ namespace _12306ByXX
         /// <returns></returns>
         private bool SubmitOrderRequest(string secretStr,out string msg)
         {
-            msg = "";
+            msg = "购票失败，请重试！";
             try
             {
                 string url = "https://kyfw.12306.cn/otn/leftTicket/submitOrderRequest";
@@ -685,7 +685,7 @@ namespace _12306ByXX
         /// <returns></returns>
         private bool QueryOrderWaitTime(InitInfo info, out string msg)
         {
-            msg = "购票失败";
+            msg = "购票失败，请重试！";
             try
             {
                 string timeSpan = GetTimeStamp();
