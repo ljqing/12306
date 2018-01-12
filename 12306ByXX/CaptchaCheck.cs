@@ -27,6 +27,10 @@ namespace _12306ByXX
         /// 0 登录 1购票
         /// </summary>
         public string Type { get; set; }
+        /// <summary>
+        /// 验证码链接地址
+        /// </summary>
+        public string LinkAddress { get; set; }
 
         public string Token { get; set; }
         public string Agent { get; set; }
@@ -63,7 +67,12 @@ namespace _12306ByXX
                 type = "passenger";
                 rand = "randp";
             }
-            string url = string.Format("https://kyfw.12306.cn/otn/passcodeNew/getPassCodeNew?module={0}&rand={1}&{2}", type, rand,randomValue);
+            string address = "https://kyfw.12306.cn/otn/passcodeNew/getPassCodeNew?module={0}&rand={1}&{2}";
+            if (LinkAddress == "1")
+            {
+                address = "https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E&module={0}&rand={1}&{2}";
+            }
+            string url = string.Format(address, type, rand, randomValue);
             Stream content = HttpHelper.Get(Agent, url, Cookie);
             if (content == null)
             {
@@ -94,28 +103,18 @@ namespace _12306ByXX
                 }
                 RandCode = answer.TrimEnd(',');
                 LogHelper.Info("验证码为：" + RandCode);
-                string postUrl = "https://kyfw.12306.cn/otn/passcodeNew/checkRandCodeAnsyn";
-                string postDataStr = "randCode=" + answer.TrimEnd(',') + "&rand=sjrand";
-                if (Type == "1")
+                bool checkResult = false;
+                checkResult = LinkAddress == "1" ? CaptchaCheck1(RandCode) : CaptchaCheck0(RandCode);
+                if (checkResult)
                 {
-                    postDataStr = "randCode=" + answer.TrimEnd(',') + "&rand=randp&_json_att=&REPEAT_SUBMIT_TOKEN=" +
-                                  Token;
+                    Thread.Sleep(1000);
+                    LogHelper.Info("验证码通过！");
+                    Login();
                 }
-                HttpJsonEntity<Dictionary<string, string>> retEntity =
-                    HttpHelper.Post(Agent, postUrl, postDataStr, Cookie);
-                if (retEntity.status.ToUpper().Equals("TRUE") && retEntity.httpstatus.Equals(200))
+                else
                 {
-                    if (retEntity.data["result"] != "1")
-                    {
-                        MessageBox.Show("验证码校验失败！");
-                        LoadCaptchaImg();
-                    }
-                    else
-                    {
-                        Thread.Sleep(1000);
-                        LogHelper.Info("验证码通过！");
-                        Login();
-                    }
+                    MessageBox.Show("验证码校验失败！");
+                    LoadCaptchaImg();
                 }
                
             }
@@ -125,6 +124,50 @@ namespace _12306ByXX
                 LoadCaptchaImg();
                 LogHelper.Error("CaptchaCheck()失败", ex);
             }
+        }
+
+        private bool CaptchaCheck0(string answer)
+        {
+            string postUrl = "https://kyfw.12306.cn/otn/passcodeNew/checkRandCodeAnsyn";
+            string postDataStr = "randCode=" + answer.TrimEnd(',') + "&rand=sjrand";
+            if (Type == "1")
+            {
+                postDataStr = "randCode=" + answer.TrimEnd(',') + "&rand=randp&_json_att=&REPEAT_SUBMIT_TOKEN=" +
+                              Token;
+            }
+            HttpJsonEntity<Dictionary<string, string>> retEntity =
+                HttpHelper.Post(Agent, postUrl, postDataStr, Cookie);
+            if (retEntity.status.ToUpper().Equals("TRUE") && retEntity.httpstatus.Equals(200))
+            {
+                if (retEntity.data["result"] == "1")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+        /// <summary>
+        /// 验证码1
+        /// </summary>
+        /// <param name="answer"></param>
+        /// <returns></returns>
+        private bool CaptchaCheck1(string answer)
+        {
+            string postUrl = "https://kyfw.12306.cn/passport/captcha/captcha-check";
+            string postDataStr = "answer=" + answer + "&login_site=E&rand=sjrand";
+            if (Type == "1")
+            {
+                //todo 提交订单时验证码校验参数未确定
+            }
+            string content = HttpHelper.StringPost(Agent, postUrl, postDataStr, Cookie);
+            Dictionary<string, string> retDic = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
+            if (retDic.ContainsKey("result_code") && retDic["result_code"].Equals("4"))
+            {
+                return true;
+            }
+            return false;
         }
 
         private void pb_image_MouseDown(object sender, MouseEventArgs e)
