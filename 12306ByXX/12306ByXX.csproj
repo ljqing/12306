@@ -63,6 +63,7 @@
       <DependentUpon>CaptchaCheck.cs</DependentUpon>
     </Compile>
     <Compile Include="Common\DesEncryptHelper.cs" />
+    <Compile Include="Common\EmailHelper.cs" />
     <Compile Include="Common\Passenger.cs" />
     <Compile Include="Common\Station.cs" />
     <Compile Include="Common\Util.cs" />
