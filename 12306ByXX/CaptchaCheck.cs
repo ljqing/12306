@@ -33,7 +33,9 @@ namespace _12306ByXX
         public string LinkAddress { get; set; }
 
         public string Token { get; set; }
+
         public string Agent { get; set; }
+
         private List<Point> _clickPoints = null;
         private const int ClickImgSize = 32;
         private readonly string basePath = AppDomain.CurrentDomain.BaseDirectory;
@@ -44,6 +46,7 @@ namespace _12306ByXX
 
         private void CaptchaCheck_Load(object sender, EventArgs e)
         {
+            Agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36";
             LoadCaptchaImg();
         }
 
@@ -80,10 +83,19 @@ namespace _12306ByXX
                 return;
             }
             LogHelper.Info("加载验证码成功！");
-            Image mImage = Image.FromStream(content);
-            pb_image.AutoSize = true;
-            pb_image.BackgroundImage = mImage;
-            if (content != null) content.Close();
+            try
+            {
+                Image mImage = Image.FromStream(content);
+                pb_image.AutoSize = true;
+                pb_image.BackgroundImage = mImage;
+                if (content != null) content.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("加载验证码失败！");
+                LogHelper.Error("验证码失败",ex);
+            }
+
         }
 
         private void btn_Refresh_Click(object sender, EventArgs e)
