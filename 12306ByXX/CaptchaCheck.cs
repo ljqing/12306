@@ -38,7 +38,7 @@ namespace _12306ByXX
 
         private List<Point> _clickPoints = null;
         private const int ClickImgSize = 32;
-        private readonly string basePath = AppDomain.CurrentDomain.BaseDirectory;
+       // private readonly string basePath = AppDomain.CurrentDomain.BaseDirectory;
         public CaptchaCheck()
         {
             InitializeComponent();
@@ -203,7 +203,7 @@ namespace _12306ByXX
             else
             {
                 Image clickImg =
-                    new Bitmap(basePath + "/Resources/click.png");
+                    new Bitmap("../../Resources/click.png");
                 
                 g.DrawImage(clickImg, new Point(x - 10, y - 10));
                 _clickPoints.Add(new Point(x - 10, y - 10));
