@@ -50,11 +50,11 @@ namespace _12306ByXX
                     cb_remember.Checked = true;
                 }
             }
+            _cookie = new CookieContainer();
+            HttpHelper.Get(DefaultAgent, "https://kyfw.12306.cn/otn/login/init", _cookie);
             Check = captchaCheck;
             captchaCheck.Agent = DefaultAgent;
             captchaCheck.Login += Login;
-            _cookie =new CookieContainer();
-            HttpHelper.Get(DefaultAgent, "https://kyfw.12306.cn/otn/login/init", _cookie);
             captchaCheck.Cookie = _cookie;
             if (rb_check2.Checked)
             {
@@ -116,7 +116,6 @@ namespace _12306ByXX
                 passWord, randCode);
             HttpJsonEntity<Dictionary<string, string>> retEntity =
                 HttpHelper.Post(DefaultAgent, loginUrl, postData, _cookie);
-            ;
             if (retEntity.status.ToUpper().Equals("TRUE") && retEntity.httpstatus.Equals(200))
             {
                 return true;

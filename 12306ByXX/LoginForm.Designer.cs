@@ -34,13 +34,13 @@
             this.label2 = new System.Windows.Forms.Label();
             this.tb_passWord = new System.Windows.Forms.TextBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.rb_check2 = new System.Windows.Forms.RadioButton();
+            this.rb_check1 = new System.Windows.Forms.RadioButton();
             this.label3 = new System.Windows.Forms.Label();
-            this.captchaCheck = new _12306ByXX.CaptchaCheck();
             this.cb_remember = new System.Windows.Forms.CheckBox();
             this.label4 = new System.Windows.Forms.Label();
-            this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.rb_check1 = new System.Windows.Forms.RadioButton();
-            this.rb_check2 = new System.Windows.Forms.RadioButton();
+            this.captchaCheck = new _12306ByXX.CaptchaCheck();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.SuspendLayout();
@@ -109,6 +109,39 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "12306";
             // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.rb_check2);
+            this.groupBox2.Controls.Add(this.rb_check1);
+            this.groupBox2.Location = new System.Drawing.Point(428, 20);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(272, 70);
+            this.groupBox2.TabIndex = 4;
+            this.groupBox2.TabStop = false;
+            // 
+            // rb_check2
+            // 
+            this.rb_check2.AutoSize = true;
+            this.rb_check2.Location = new System.Drawing.Point(118, 21);
+            this.rb_check2.Name = "rb_check2";
+            this.rb_check2.Size = new System.Drawing.Size(105, 36);
+            this.rb_check2.TabIndex = 1;
+            this.rb_check2.Text = "线路2";
+            this.rb_check2.UseVisualStyleBackColor = true;
+            this.rb_check2.CheckedChanged += new System.EventHandler(this.rb_LinkAdress_CheckedChanged);
+            // 
+            // rb_check1
+            // 
+            this.rb_check1.AutoSize = true;
+            this.rb_check1.Checked = true;
+            this.rb_check1.Location = new System.Drawing.Point(6, 19);
+            this.rb_check1.Name = "rb_check1";
+            this.rb_check1.Size = new System.Drawing.Size(105, 36);
+            this.rb_check1.TabIndex = 0;
+            this.rb_check1.TabStop = true;
+            this.rb_check1.Text = "线路1";
+            this.rb_check1.UseVisualStyleBackColor = true;
+            // 
             // label3
             // 
             this.label3.AutoSize = true;
@@ -118,19 +151,6 @@
             this.label3.Size = new System.Drawing.Size(90, 32);
             this.label3.TabIndex = 3;
             this.label3.Text = "验证码";
-            // 
-            // captchaCheck
-            // 
-            this.captchaCheck.Agent = null;
-            this.captchaCheck.Cookie = ((System.Net.CookieContainer)(resources.GetObject("captchaCheck.Cookie")));
-            this.captchaCheck.Location = new System.Drawing.Point(112, 164);
-            this.captchaCheck.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.captchaCheck.Name = "captchaCheck";
-            this.captchaCheck.RandCode = null;
-            this.captchaCheck.Size = new System.Drawing.Size(588, 534);
-            this.captchaCheck.TabIndex = 2;
-            this.captchaCheck.Token = null;
-            this.captchaCheck.Type = null;
             // 
             // cb_remember
             // 
@@ -154,38 +174,20 @@
             this.label4.TabIndex = 0;
             this.label4.Text = "Copyright © 2017 by Liu";
             // 
-            // groupBox2
+            // captchaCheck
             // 
-            this.groupBox2.Controls.Add(this.rb_check2);
-            this.groupBox2.Controls.Add(this.rb_check1);
-            this.groupBox2.Location = new System.Drawing.Point(428, 20);
-            this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(272, 70);
-            this.groupBox2.TabIndex = 4;
-            this.groupBox2.TabStop = false;
-            // 
-            // rb_check1
-            // 
-            this.rb_check1.AutoSize = true;
-            this.rb_check1.Checked = true;
-            this.rb_check1.Location = new System.Drawing.Point(6, 19);
-            this.rb_check1.Name = "rb_check1";
-            this.rb_check1.Size = new System.Drawing.Size(105, 36);
-            this.rb_check1.TabIndex = 0;
-            this.rb_check1.TabStop = true;
-            this.rb_check1.Text = "线路1";
-            this.rb_check1.UseVisualStyleBackColor = true;
-            // 
-            // rb_check2
-            // 
-            this.rb_check2.AutoSize = true;
-            this.rb_check2.Location = new System.Drawing.Point(118, 21);
-            this.rb_check2.Name = "rb_check2";
-            this.rb_check2.Size = new System.Drawing.Size(105, 36);
-            this.rb_check2.TabIndex = 1;
-            this.rb_check2.Text = "线路2";
-            this.rb_check2.UseVisualStyleBackColor = true;
-            this.rb_check2.CheckedChanged += new System.EventHandler(this.rb_LinkAdress_CheckedChanged);
+            this.captchaCheck.Agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_1) AppleWebKit/537.36 (KHTML, like G" +
+    "ecko) Chrome/63.0.3239.84 Safari/537.36";
+            this.captchaCheck.Cookie = ((System.Net.CookieContainer)(resources.GetObject("captchaCheck.Cookie")));
+            this.captchaCheck.LinkAddress = null;
+            this.captchaCheck.Location = new System.Drawing.Point(112, 164);
+            this.captchaCheck.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.captchaCheck.Name = "captchaCheck";
+            this.captchaCheck.RandCode = null;
+            this.captchaCheck.Size = new System.Drawing.Size(588, 534);
+            this.captchaCheck.TabIndex = 2;
+            this.captchaCheck.Token = null;
+            this.captchaCheck.Type = null;
             // 
             // LoginForm
             // 
