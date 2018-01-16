@@ -116,6 +116,7 @@ namespace _12306ByXX
                 RandCode = answer.TrimEnd(',');
                 LogHelper.Info("验证码为：" + RandCode);
                 bool checkResult = false;
+                Thread.Sleep(1000);
                 checkResult = LinkAddress == "1" ? CaptchaCheck1(RandCode) : CaptchaCheck0(RandCode);
                 if (checkResult)
                 {
